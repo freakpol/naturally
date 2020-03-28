@@ -1,0 +1,39 @@
+{
+  "name": "naturally",
+  "version": "1.0.0",
+  "description": "Natural language interface for Flowed",
+  "main": "index.js",
+  "scripts": {
+    "test": "test",
+    "build": "tsc",
+    "build:watch": "npm run build -- --watch",
+    "start": "node -r ts-node/register lib/index.js"
+  },
+  "keywords": [
+    "flowed",
+    "natural",
+    "language"
+  ],
+  "author": "Pablo Cianci",
+  "license": "MIT",
+  "dependencies": {
+    "chevrotain": "^6.5.0",
+    "debug": "^4.1.1"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "@types/node": "^13.9.5",
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freakpol/naturally.git"
+  },
+  "bugs": {
+    "url": "https://github.com/freakpol/naturally/issues"
+  },
+  "homepage": "https://github.com/freakpol/naturally#readme"
+}
