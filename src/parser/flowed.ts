@@ -9,8 +9,11 @@ import {allTokens,
   ResolverIdentifier,
   ResolverParams,
   ResolverParamMapped,
-  ResolverParamTransformed,
-  ResolverParamFixed,
+  ResolverParamTransformedWithString,
+  ResolverParamTransformedWithObject,
+  ResolverParamFixedBasic,
+  ResolverParamFixedNull,
+  ResolverParamFixedObject,
   ResolverResults,
   ResolverResultMapped,
 }  from '../tokens/flowed';
@@ -83,8 +86,11 @@ export class NaturallyFlowedParser extends CstParser {
         DEF: () => {
           $.OR([
             { ALT: () => $.CONSUME(ResolverParamMapped) },
-            { ALT: () => $.CONSUME(ResolverParamTransformed) },
-            { ALT: () => $.CONSUME(ResolverParamFixed) }
+            { ALT: () => $.CONSUME(ResolverParamTransformedWithString) },
+            { ALT: () => $.CONSUME(ResolverParamTransformedWithObject) },
+            { ALT: () => $.CONSUME(ResolverParamFixedBasic) },
+            { ALT: () => $.CONSUME(ResolverParamFixedNull) },
+            { ALT: () => $.CONSUME(ResolverParamFixedObject) }
           ]);
         }
       });
@@ -205,8 +211,8 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
-    if (ctx.ResolverParamTransformed && ctx.ResolverParamTransformed.length) {
-      for (const transformedParam of ctx.ResolverParamTransformed) {
+    if (ctx.ResolverParamTransformedWithString && ctx.ResolverParamTransformedWithString.length) {
+      for (const transformedParam of ctx.ResolverParamTransformedWithString) {
         params = Object.assign({}, params, {
           [transformedParam.payload.transformed.to]: {
             transform: transformedParam.payload.transformed.from
@@ -215,11 +221,62 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
-    if (ctx.ResolverParamFixed && ctx.ResolverParamFixed.length) {
-      for (const fixedParam of ctx.ResolverParamFixed) {
+    if (ctx.ResolverParamTransformedWithObject && ctx.ResolverParamTransformedWithObject.length) {
+      for (const transformedParam of ctx.ResolverParamTransformedWithObject) {
+        params = Object.assign({}, params, {
+          [transformedParam.payload.transformed.to]: {
+            transform: JSON.parse(transformedParam.payload.transformed.from)
+          }
+        });
+      }
+    }
+
+    if (ctx.ResolverParamFixedBasic && ctx.ResolverParamFixedBasic.length) {
+      for (const fixedParam of ctx.ResolverParamFixedBasic) {
+
+        let value: any;
+        switch (fixedParam.payload.fixed.type) {
+          case 'numeric':
+            value = parseFloat(fixedParam.payload.fixed.from);
+            break;
+
+          case 'boolean':
+            value = (fixedParam.payload.fixed.from.toLocaleLowerCase() === 'true' || fixedParam.payload.fixed.from === '1');
+            break;
+
+            case 'array':
+              value = JSON.parse(fixedParam.payload.fixed.from.replace(/'/g, '"'));
+            break;
+
+          case 'string':
+          default:
+            value = fixedParam.payload.fixed.from
+            break;
+        }
+
         params = Object.assign({}, params, {
           [fixedParam.payload.fixed.to]: {
-            value: fixedParam.payload.fixed.from
+            value: value
+          }
+        });
+      }
+    }
+
+    if (ctx.ResolverParamFixedNull && ctx.ResolverParamFixedNull.length) {
+      for (const fixedParam of ctx.ResolverParamFixedNull) {
+        params = Object.assign({}, params, {
+          [fixedParam.payload.fixed.to]: {
+            value: null
+          }
+        });
+      }
+    }
+
+    if (ctx.ResolverParamFixedObject && ctx.ResolverParamFixedObject.length) {
+      for (const fixedParam of ctx.ResolverParamFixedObject) {
+        params = Object.assign({}, params, {
+          [fixedParam.payload.fixed.to]: {
+            value: JSON.parse(fixedParam.payload.fixed.from.trim())
           }
         });
       }

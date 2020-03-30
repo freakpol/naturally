@@ -23,9 +23,18 @@ const taskRequiresRegEx = /that requires the following inputs: (([._a-zA-Z][.\-_
 const taskProvidesRegEx = /that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
 const resolverDefinitionRegEx = /using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/;
 const resolverWithInputsRegEx = /with the following mapped inputs:/;
+
 const resolverInputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-const resolverInputTransformedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with (.+)/;
-const resolverInputFixedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed value of (.+)/;
+
+const resolverInputTransformedWithStringRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with string (.+)/;
+const resolverInputTransformedWithObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with <<<OBJECT(.+)OBJECT;/s;
+
+
+
+const resolverInputFixedBasicRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed (numeric|boolean|string|array) value of (.+)/;
+const resolverInputFixedNullRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed null value/;
+const resolverInputFixedObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed object value of <<<OBJECT(.+)OBJECT;/s;
+
 const resolverWithOutputsRegEx = /with the following mapped outputs:/;
 const resolverOutputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
 
@@ -110,8 +119,8 @@ const resolverInputMappedPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-const resolverInputTransformedPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputTransformedRegEx, 'param ', text, startOffset);
+const resolverInputTransformedWithStringPattern = (text: string, startOffset: number) => {
+  const execResult = regexTest(resolverInputTransformedWithStringRegEx, 'param ', text, startOffset);
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
@@ -125,19 +134,85 @@ const resolverInputTransformedPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-const resolverInputFixedPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputFixedRegEx, 'param ', text, startOffset);
+const resolverInputTransformedWithObjectPattern = (text: string, startOffset: number) => {
+  const subtext = text.substr(startOffset);
+  if (subtext.startsWith('param')) {
+    resolverInputTransformedWithObjectRegEx.lastIndex = startOffset;
+    const execResult = resolverInputTransformedWithObjectRegEx.exec(subtext);
+    if (execResult !== null) {
+      // @ts-ignore
+      execResult.payload = {
+        transformed: {
+          from: execResult[2],
+          to: execResult[1]
+        }
+      };
+    }
+
+    return execResult;
+  }
+
+  return null;
+};
+
+
+
+const resolverInputFixedBasicPattern = (text: string, startOffset: number) => {
+  const execResult = regexTest(resolverInputFixedBasicRegEx, 'param ', text, startOffset);
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
       fixed: {
-        from: execResult[2],
-        to: execResult[1]
+        from: execResult[3],
+        to: execResult[1],
+        type: execResult[2]
       }
     };
   }
 
   return execResult;
+};
+
+
+const resolverInputFixedNullPattern = (text: string, startOffset: number) => {
+  const execResult = regexTest(resolverInputFixedNullRegEx, 'param ', text, startOffset);
+  if (execResult !== null) {
+    // @ts-ignore
+    execResult.payload = {
+      fixed: {
+        to: execResult[1],
+      }
+    };
+  }
+
+  return execResult;
+};
+
+
+const resolverInputFixedObjectPattern = (text: string, startOffset: number) => {
+  const subtext = text.substr(startOffset);
+
+  console.log(subtext);
+  if (subtext.startsWith('param')) {
+    resolverInputFixedObjectRegEx.lastIndex = startOffset;
+
+    const execResult = resolverInputFixedObjectRegEx.exec(subtext);
+
+
+    if (execResult !== null) {
+      // @ts-ignore
+      execResult.payload = {
+        fixed: {
+          to: execResult[1],
+          from: execResult[2]
+        }
+      };
+    }
+
+    return execResult;
+  }
+
+  return null;
 };
 
 const resolverWithOutputsPattern = (text: string, startOffset: number) => {
@@ -210,18 +285,40 @@ export const ResolverParamMapped = createToken({
   label: 'a mapped param',
   line_breaks: false
 });
-export const ResolverParamTransformed = createToken({
-  name: 'ResolverParamTransformed',
-  pattern: resolverInputTransformedPattern,
-  label: 'a transformed param',
+
+export const ResolverParamTransformedWithString = createToken({
+  name: 'ResolverParamTransformedWithString',
+  pattern: resolverInputTransformedWithStringPattern,
+  label: 'a transformed string param',
   line_breaks: false
 });
 
-export const ResolverParamFixed = createToken({
-  name: 'ResolverParamFixed',
-  pattern: resolverInputFixedPattern,
+export const ResolverParamTransformedWithObject = createToken({
+  name: 'ResolverParamTransformedWithObject',
+  pattern: resolverInputTransformedWithObjectPattern,
+  label: 'a transformed object param',
+  line_breaks: true
+});
+
+export const ResolverParamFixedBasic = createToken({
+  name: 'ResolverParamFixedBasic',
+  pattern: resolverInputFixedBasicPattern,
   label: 'a fixed value param',
   line_breaks: false
+});
+
+export const ResolverParamFixedNull = createToken({
+  name: 'ResolverParamFixedNull',
+  pattern: resolverInputFixedNullPattern,
+  label: 'a fixed null value',
+  line_breaks: false
+});
+
+export const ResolverParamFixedObject = createToken({
+  name: 'ResolverParamFixedObject',
+  pattern: resolverInputFixedObjectPattern,
+  label: 'a fixed object value',
+  line_breaks: true
 });
 
 export const ResolverResults = createToken({
@@ -247,8 +344,11 @@ export const allTokens = [
   ResolverIdentifier,
   ResolverParams,
   ResolverParamMapped,
-  ResolverParamTransformed,
-  ResolverParamFixed,
+  ResolverParamTransformedWithString,
+  ResolverParamTransformedWithObject,
+  ResolverParamFixedBasic,
+  ResolverParamFixedNull,
+  ResolverParamFixedObject,
   ResolverResults,
   ResolverResultMapped,
 ];
