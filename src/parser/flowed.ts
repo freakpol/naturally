@@ -1,7 +1,10 @@
-const debug = require('debug')("naturally");
+import { NatuallyFlowedLexer } from "../lexer/flowed";
+import { debug as debugFn } from "debug";
+const debug = debugFn("naturally:tokens");
 
-import { CstParser} from 'chevrotain';
-import {allTokens,
+import { CstParser } from "chevrotain";
+import {
+  allTokens,
   FlowDefinition,
   TaskIdentifier,
   TaskRequires,
@@ -15,10 +18,10 @@ import {allTokens,
   ResolverParamFixedNull,
   ResolverParamFixedObject,
   ResolverResults,
-  ResolverResultMapped,
-}  from '../tokens/flowed';
+  ResolverResultMapped
+} from "../tokens/flowed";
 
-export class NaturallyFlowedParser extends CstParser {
+class FlowedNaturalLanguageParser extends CstParser {
   public flowStatement: any;
   public taskStatement: any;
   public taskRequires: any;
@@ -32,170 +35,171 @@ export class NaturallyFlowedParser extends CstParser {
       recoveryEnabled: true
     });
 
-    const $ = this;
+    const _this = this;
 
-    this.flowStatement = $.RULE('flowStatement', () => {
-      $.CONSUME(FlowDefinition);
+    this.flowStatement = _this.RULE("flowStatement", () => {
+      _this.CONSUME(FlowDefinition);
 
-      $.AT_LEAST_ONE({
+      _this.AT_LEAST_ONE({
         DEF: () => {
-          $.SUBRULE($.taskStatement);
+          _this.SUBRULE(_this.taskStatement);
         }
       });
     });
 
-    this.taskStatement = $.RULE('taskStatement', () => {
-      $.CONSUME(TaskIdentifier);
+    this.taskStatement = _this.RULE("taskStatement", () => {
+      _this.CONSUME(TaskIdentifier);
 
-      $.OPTION(() => {
-        $.SUBRULE($.taskRequires);
+      _this.OPTION(() => {
+        _this.SUBRULE(_this.taskRequires);
       });
 
-      $.OPTION1(() => {
-        $.SUBRULE($.taskProvides);
+      _this.OPTION1(() => {
+        _this.SUBRULE(_this.taskProvides);
       });
 
-      $.SUBRULE($.taskResolver);
+      _this.SUBRULE(_this.taskResolver);
     });
 
-
-    this.taskRequires = $.RULE('taskRequires', () => {
-      $.CONSUME(TaskRequires);
+    this.taskRequires = _this.RULE("taskRequires", () => {
+      _this.CONSUME(TaskRequires);
     });
 
-    this.taskProvides = $.RULE('taskProvides', () => {
-      $.CONSUME(TaskProvides);
+    this.taskProvides = _this.RULE("taskProvides", () => {
+      _this.CONSUME(TaskProvides);
     });
 
-    this.taskResolver = $.RULE('taskResolver', () => {
-      $.CONSUME(ResolverIdentifier);
+    this.taskResolver = _this.RULE("taskResolver", () => {
+      _this.CONSUME(ResolverIdentifier);
 
-      $.OPTION1(() => {
-        $.SUBRULE($.resolverParams)
+      _this.OPTION1(() => {
+        _this.SUBRULE(_this.resolverParams);
       });
 
-      $.OPTION2(() => {
-        $.SUBRULE($.resolverResults)
-      })
+      _this.OPTION2(() => {
+        _this.SUBRULE(_this.resolverResults);
+      });
     });
 
-    this.resolverParams = $.RULE('resolverParams', () => {
-      $.CONSUME(ResolverParams);
+    this.resolverParams = _this.RULE("resolverParams", () => {
+      _this.CONSUME(ResolverParams);
 
-      $.AT_LEAST_ONE({
+      _this.AT_LEAST_ONE({
         DEF: () => {
-          $.OR([
-            { ALT: () => $.CONSUME(ResolverParamMapped) },
-            { ALT: () => $.CONSUME(ResolverParamTransformedWithString) },
-            { ALT: () => $.CONSUME(ResolverParamTransformedWithObject) },
-            { ALT: () => $.CONSUME(ResolverParamFixedBasic) },
-            { ALT: () => $.CONSUME(ResolverParamFixedNull) },
-            { ALT: () => $.CONSUME(ResolverParamFixedObject) }
+          _this.OR([
+            { ALT: () => _this.CONSUME(ResolverParamMapped) },
+            { ALT: () => _this.CONSUME(ResolverParamTransformedWithString) },
+            { ALT: () => _this.CONSUME(ResolverParamTransformedWithObject) },
+            { ALT: () => _this.CONSUME(ResolverParamFixedBasic) },
+            { ALT: () => _this.CONSUME(ResolverParamFixedNull) },
+            { ALT: () => _this.CONSUME(ResolverParamFixedObject) }
           ]);
         }
       });
     });
 
-    this.resolverResults = $.RULE('resolverResults', () => {
-      $.CONSUME(ResolverResults);
-      $.AT_LEAST_ONE({
-        //SEP: Comma,
+    this.resolverResults = _this.RULE("resolverResults", () => {
+      _this.CONSUME(ResolverResults);
+      _this.AT_LEAST_ONE({
+        // SEP: Comma,
         DEF: () => {
-          $.CONSUME(ResolverResultMapped)
+          _this.CONSUME(ResolverResultMapped);
         }
       });
     });
 
-    this.performSelfAnalysis()
+    this.performSelfAnalysis();
   }
 }
 
-const parser = new NaturallyFlowedParser();
+const parser = new FlowedNaturalLanguageParser();
+const FlowedNatualLanguageVisitorBase = parser.getBaseCstVisitorConstructor();
 
-const BaseNaturallyFlowedVisitor = parser.getBaseCstVisitorConstructor();
-
-export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
+class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
   constructor() {
-    super()
-    // The "validateVisitor" method is a helper utility which performs static analysis
-    // to detect missing or redundant visitor methods
-    this.validateVisitor()
+    super();
+    this.validateVisitor();
   }
 
   flowStatement(ctx: any) {
-
     let tasks = {};
 
-    for (let task of ctx.children.taskStatement) {
-      const visitedTask = this.visit(task);
-
-      tasks = Object.assign({}, tasks, visitedTask);
+    for (const task of ctx.children.taskStatement) {
+      tasks = Object.assign({}, tasks, this.visit(task));
     }
 
     return {
       code: ctx.children.FlowDefinition.pop().payload.identifier,
-      tasks: tasks
-    }
-
+      tasks
+    };
   }
 
   taskStatement(ctx: any) {
-
-
-
     let taskDefinition = {};
 
     if (ctx.taskRequires && ctx.taskRequires.length) {
-      const requireVisitor = this.visit(ctx.taskRequires.pop())
-      taskDefinition = Object.assign({}, taskDefinition, requireVisitor);
+      taskDefinition = Object.assign(
+        {},
+        taskDefinition,
+        this.visit(ctx.taskRequires.pop())
+      );
     }
 
     if (ctx.taskProvides && ctx.taskProvides.length) {
-      const providerVisitor = this.visit(ctx.taskProvides.pop())
-      taskDefinition = Object.assign({}, taskDefinition, providerVisitor);
+      taskDefinition = Object.assign(
+        {},
+        taskDefinition,
+        this.visit(ctx.taskProvides.pop())
+      );
     }
 
     if (ctx.taskResolver && ctx.taskResolver.length) {
-      const resolverDefinition = this.visit(ctx.taskResolver.pop());
-      taskDefinition = Object.assign({}, taskDefinition, resolverDefinition);
+      taskDefinition = Object.assign(
+        {},
+        taskDefinition,
+        this.visit(ctx.taskResolver.pop())
+      );
     }
 
-    return {[ctx.TaskIdentifier.pop().payload.identifier]: taskDefinition};
-
+    return { [ctx.TaskIdentifier.pop().payload.identifier]: taskDefinition };
   }
 
   taskRequires(ctx: any) {
     return {
       requires: ctx.TaskRequires.pop().payload.requireList
-    }
-
+    };
   }
 
   taskProvides(ctx: any) {
     return {
       provides: ctx.TaskProvides.pop().payload.provideList
-    }
+    };
   }
-
 
   taskResolver(ctx: any) {
     let resolverParts = {};
 
     if (ctx.resolverParams && ctx.resolverParams.length) {
-      const resolverParamsVisitor = this.visit(ctx.resolverParams.pop());
-      resolverParts = Object.assign({}, resolverParts, resolverParamsVisitor);
+      resolverParts = Object.assign(
+        {},
+        resolverParts,
+        this.visit(ctx.resolverParams.pop())
+      );
     }
 
     if (ctx.resolverResults && ctx.resolverResults.length) {
-      const resolverResultsVisitor = this.visit(ctx.resolverResults.pop());
-      resolverParts = Object.assign({}, resolverParts, resolverResultsVisitor);
+      resolverParts = Object.assign(
+        {},
+        resolverParts,
+        this.visit(ctx.resolverResults.pop())
+      );
     }
 
     return {
       resolver: Object.assign(
-          {},
-          {name: ctx.ResolverIdentifier.pop().payload.identifier},
-          resolverParts
+        {},
+        { name: ctx.ResolverIdentifier.pop().payload.identifier },
+        resolverParts
       )
     };
   }
@@ -211,7 +215,10 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
-    if (ctx.ResolverParamTransformedWithString && ctx.ResolverParamTransformedWithString.length) {
+    if (
+      ctx.ResolverParamTransformedWithString &&
+      ctx.ResolverParamTransformedWithString.length
+    ) {
       for (const transformedParam of ctx.ResolverParamTransformedWithString) {
         params = Object.assign({}, params, {
           [transformedParam.payload.transformed.to]: {
@@ -221,7 +228,10 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
-    if (ctx.ResolverParamTransformedWithObject && ctx.ResolverParamTransformedWithObject.length) {
+    if (
+      ctx.ResolverParamTransformedWithObject &&
+      ctx.ResolverParamTransformedWithObject.length
+    ) {
       for (const transformedParam of ctx.ResolverParamTransformedWithObject) {
         params = Object.assign({}, params, {
           [transformedParam.payload.transformed.to]: {
@@ -233,30 +243,33 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
 
     if (ctx.ResolverParamFixedBasic && ctx.ResolverParamFixedBasic.length) {
       for (const fixedParam of ctx.ResolverParamFixedBasic) {
-
         let value: any;
         switch (fixedParam.payload.fixed.type) {
-          case 'numeric':
+          case "numeric":
             value = parseFloat(fixedParam.payload.fixed.from);
             break;
 
-          case 'boolean':
-            value = (fixedParam.payload.fixed.from.toLocaleLowerCase() === 'true' || fixedParam.payload.fixed.from === '1');
+          case "boolean":
+            value =
+              fixedParam.payload.fixed.from.toLocaleLowerCase() === "true" ||
+              fixedParam.payload.fixed.from === "1";
             break;
 
-            case 'array':
-              value = JSON.parse(fixedParam.payload.fixed.from.replace(/'/g, '"'));
+          case "array":
+            value = JSON.parse(
+              fixedParam.payload.fixed.from.replace(/'/g, '"')
+            );
             break;
 
-          case 'string':
+          case "string":
           default:
-            value = fixedParam.payload.fixed.from
+            value = fixedParam.payload.fixed.from;
             break;
         }
 
         params = Object.assign({}, params, {
           [fixedParam.payload.fixed.to]: {
-            value: value
+            value
           }
         });
       }
@@ -282,8 +295,7 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
-    return {params: params};
-
+    return { params };
   }
   resolverResults(ctx: any) {
     let params = {};
@@ -296,9 +308,30 @@ export class NaturallyFlowedVisitor extends BaseNaturallyFlowedVisitor {
       }
     }
 
+    return { results: params };
+  }
+}
 
-    return {results: params};
+export class NaturallyParser {
+  protected parser: FlowedNaturalLanguageParser;
+  protected visitor: FlowedNatualLanguageVisitor;
+
+  constructor() {
+    this.parser = new FlowedNaturalLanguageParser();
+    this.visitor = new FlowedNatualLanguageVisitor();
   }
 
+  public parse(text: string) {
+    const lexingResult = NatuallyFlowedLexer.tokenize(text);
+    parser.input = lexingResult.tokens;
+    const parsedInput = parser.flowStatement();
+    const jsonFlow = this.visitor.flowStatement(parsedInput);
 
+    if (parser.errors.length > 0) {
+      debug("Parser errors: %O", parser.errors);
+      throw new Error("Errors were detected");
+    }
+
+    return jsonFlow;
+  }
 }

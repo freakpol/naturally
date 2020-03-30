@@ -1,4 +1,6 @@
-import {createToken, Lexer} from "chevrotain";
+import { createToken, Lexer } from "chevrotain";
+import { debug as debugFn } from "debug";
+const debug = debugFn("naturally:tokens");
 
 export const WhiteSpace = createToken({
   name: "WhiteSpace",
@@ -6,8 +8,46 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED
 });
 
-const regexTest = (regex: RegExp, startString: string, text: string, startOffset: number) => {
-  const subtext = text.substr(startOffset, text.substr(startOffset).indexOf('\n') + 1);
+const flowDefinitionRegEx = /Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/;
+const taskDefinitionRegEx = /A task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
+const taskRequiresRegEx = /that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
+const taskProvidesRegEx = /that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
+const resolverDefinitionRegEx = /using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/;
+const resolverWithInputsRegEx = /with the following mapped inputs:/;
+const resolverInputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
+const resolverInputTransformedWithStringRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with string (.+)/;
+const resolverInputTransformedWithObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with <<<OBJECT(.+)OBJECT;/s;
+const resolverInputFixedBasicRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed (numeric|boolean|string|array) value of (.+)/;
+const resolverInputFixedNullRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed null value/;
+const resolverInputFixedObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed object value of <<<OBJECT(.+)OBJECT;/s;
+const resolverWithOutputsRegEx = /with the following mapped outputs:/;
+const resolverOutputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
+
+const regexTest = (
+  regex: RegExp,
+  startString: string,
+  text: string,
+  startOffset: number,
+  multiline: boolean = false
+) => {
+  let subtext: string;
+  if (!multiline) {
+    subtext = text.substr(
+      startOffset,
+      text.substr(startOffset).indexOf("\n") + 1
+    );
+  } else {
+    subtext = text.substr(startOffset);
+  }
+
+  const debugObject = {
+    text: subtext,
+    regex,
+    startOffset,
+    startString
+  };
+  debug("Running regexTest on: %O", debugObject);
+
   if (subtext.startsWith(startString)) {
     regex.lastIndex = startOffset;
 
@@ -17,29 +57,13 @@ const regexTest = (regex: RegExp, startString: string, text: string, startOffset
   return null;
 };
 
-const flowDefinitionRegEx = /Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/;
-const taskDefinitionRegEx = /A task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-const taskRequiresRegEx = /that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
-const taskProvidesRegEx = /that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
-const resolverDefinitionRegEx = /using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/;
-const resolverWithInputsRegEx = /with the following mapped inputs:/;
-
-const resolverInputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-
-const resolverInputTransformedWithStringRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with string (.+)/;
-const resolverInputTransformedWithObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with <<<OBJECT(.+)OBJECT;/s;
-
-
-
-const resolverInputFixedBasicRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed (numeric|boolean|string|array) value of (.+)/;
-const resolverInputFixedNullRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed null value/;
-const resolverInputFixedObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed object value of <<<OBJECT(.+)OBJECT;/s;
-
-const resolverWithOutputsRegEx = /with the following mapped outputs:/;
-const resolverOutputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-
 const flowDefinitionPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(flowDefinitionRegEx, 'Define a flow named', text, startOffset);
+  const execResult = regexTest(
+    flowDefinitionRegEx,
+    "Define a flow named",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
@@ -51,7 +75,12 @@ const flowDefinitionPattern = (text: string, startOffset: number) => {
 };
 
 const taskDefinitionPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(taskDefinitionRegEx, 'A task named', text, startOffset);
+  const execResult = regexTest(
+    taskDefinitionRegEx,
+    "A task named",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
@@ -63,11 +92,16 @@ const taskDefinitionPattern = (text: string, startOffset: number) => {
 };
 
 const taskRequiresPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(taskRequiresRegEx, 'that requires the following inputs:', text, startOffset);
+  const execResult = regexTest(
+    taskRequiresRegEx,
+    "that requires the following inputs:",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
-      requireList: execResult[1].split(',').map((p) => p.trim())
+      requireList: execResult[1].split(",").map(p => p.trim())
     };
   }
 
@@ -75,11 +109,16 @@ const taskRequiresPattern = (text: string, startOffset: number) => {
 };
 
 const taskProvidesPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(taskProvidesRegEx, 'that provides the following outputs:', text, startOffset);
+  const execResult = regexTest(
+    taskProvidesRegEx,
+    "that provides the following outputs:",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
-      provideList: execResult[1].split(',').map((p) => p.trim())
+      provideList: execResult[1].split(",").map(p => p.trim())
     };
   }
 
@@ -87,7 +126,12 @@ const taskProvidesPattern = (text: string, startOffset: number) => {
 };
 
 const resolverDefinitionPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverDefinitionRegEx, 'using a resolver named', text, startOffset);
+  const execResult = regexTest(
+    resolverDefinitionRegEx,
+    "using a resolver named",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
@@ -99,19 +143,29 @@ const resolverDefinitionPattern = (text: string, startOffset: number) => {
 };
 
 const resolverWithInputsPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverWithInputsRegEx, 'with the following mapped inputs:', text, startOffset);
+  const execResult = regexTest(
+    resolverWithInputsRegEx,
+    "with the following mapped inputs:",
+    text,
+    startOffset
+  );
 
   return execResult;
 };
 
 const resolverInputMappedPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputMappedRegEx, 'param ', text, startOffset);
+  const execResult = regexTest(
+    resolverInputMappedRegEx,
+    "param ",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
       mapped: {
         from: execResult[2],
-        to:  execResult[1]
+        to: execResult[1]
       }
     };
   }
@@ -119,14 +173,22 @@ const resolverInputMappedPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-const resolverInputTransformedWithStringPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputTransformedWithStringRegEx, 'param ', text, startOffset);
+const resolverInputTransformedWithStringPattern = (
+  text: string,
+  startOffset: number
+) => {
+  const execResult = regexTest(
+    resolverInputTransformedWithStringRegEx,
+    "param ",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
       transformed: {
         from: execResult[2],
-        to:  execResult[1]
+        to: execResult[1]
       }
     };
   }
@@ -134,31 +196,37 @@ const resolverInputTransformedWithStringPattern = (text: string, startOffset: nu
   return execResult;
 };
 
-const resolverInputTransformedWithObjectPattern = (text: string, startOffset: number) => {
-  const subtext = text.substr(startOffset);
-  if (subtext.startsWith('param')) {
-    resolverInputTransformedWithObjectRegEx.lastIndex = startOffset;
-    const execResult = resolverInputTransformedWithObjectRegEx.exec(subtext);
-    if (execResult !== null) {
-      // @ts-ignore
-      execResult.payload = {
-        transformed: {
-          from: execResult[2],
-          to: execResult[1]
-        }
-      };
-    }
-
-    return execResult;
+const resolverInputTransformedWithObjectPattern = (
+  text: string,
+  startOffset: number
+) => {
+  const execResult = regexTest(
+    resolverInputTransformedWithObjectRegEx,
+    "param ",
+    text,
+    startOffset,
+    true
+  );
+  if (execResult !== null) {
+    // @ts-ignore
+    execResult.payload = {
+      transformed: {
+        from: execResult[2],
+        to: execResult[1]
+      }
+    };
   }
 
-  return null;
+  return execResult;
 };
 
-
-
 const resolverInputFixedBasicPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputFixedBasicRegEx, 'param ', text, startOffset);
+  const execResult = regexTest(
+    resolverInputFixedBasicRegEx,
+    "param ",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
@@ -173,14 +241,39 @@ const resolverInputFixedBasicPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-
 const resolverInputFixedNullPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverInputFixedNullRegEx, 'param ', text, startOffset);
+  const execResult = regexTest(
+    resolverInputFixedNullRegEx,
+    "param ",
+    text,
+    startOffset
+  );
+  if (execResult !== null) {
+    // @ts-ignore
+    execResult.payload = {
+      fixed: {
+        to: execResult[1]
+      }
+    };
+  }
+
+  return execResult;
+};
+
+const resolverInputFixedObjectPattern = (text: string, startOffset: number) => {
+  const execResult = regexTest(
+    resolverInputFixedObjectRegEx,
+    "param ",
+    text,
+    startOffset,
+    true
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
       fixed: {
         to: execResult[1],
+        from: execResult[2]
       }
     };
   }
@@ -188,47 +281,30 @@ const resolverInputFixedNullPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-
-const resolverInputFixedObjectPattern = (text: string, startOffset: number) => {
-  const subtext = text.substr(startOffset);
-
-  console.log(subtext);
-  if (subtext.startsWith('param')) {
-    resolverInputFixedObjectRegEx.lastIndex = startOffset;
-
-    const execResult = resolverInputFixedObjectRegEx.exec(subtext);
-
-
-    if (execResult !== null) {
-      // @ts-ignore
-      execResult.payload = {
-        fixed: {
-          to: execResult[1],
-          from: execResult[2]
-        }
-      };
-    }
-
-    return execResult;
-  }
-
-  return null;
-};
-
 const resolverWithOutputsPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverWithOutputsRegEx, 'with the following mapped outputs:', text, startOffset);
+  const execResult = regexTest(
+    resolverWithOutputsRegEx,
+    "with the following mapped outputs:",
+    text,
+    startOffset
+  );
 
   return execResult;
 };
 
 const resolverOutputMappedPattern = (text: string, startOffset: number) => {
-  const execResult = regexTest(resolverOutputMappedRegEx, 'param ', text, startOffset);
+  const execResult = regexTest(
+    resolverOutputMappedRegEx,
+    "param ",
+    text,
+    startOffset
+  );
   if (execResult !== null) {
     // @ts-ignore
     execResult.payload = {
       mapped: {
         from: execResult[2],
-        to:  execResult[1]
+        to: execResult[1]
       }
     };
   }
@@ -236,102 +312,101 @@ const resolverOutputMappedPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-
 export const FlowDefinition = createToken({
-  name: 'FlowDefinition',
+  name: "FlowDefinition",
   pattern: flowDefinitionPattern,
-  label: 'Define a flow named <flowIDdentifier> that has the following tasks:',
+  label: "Define a flow named <flowIDdentifier> that has the following tasks:",
   line_breaks: false
 });
 
 export const TaskIdentifier = createToken({
-  name: 'TaskIdentifier',
+  name: "TaskIdentifier",
   pattern: taskDefinitionPattern,
-  label: 'A task named <taskIdentifier>',
+  label: "A task named <taskIdentifier>",
   line_breaks: false
 });
 
 export const TaskRequires = createToken({
-  name: 'TaskRequires',
-  pattern: taskRequiresPattern, //that requires the following inputs:/,
-  label: 'that requires the following inputs: <comma separated identifiers>',
+  name: "TaskRequires",
+  pattern: taskRequiresPattern, // that requires the following inputs:/,
+  label: "that requires the following inputs: <comma separated identifiers>",
   line_breaks: false
 });
 
 export const TaskProvides = createToken({
-  name: 'TaskProvides',
+  name: "TaskProvides",
   pattern: taskProvidesPattern,
-  label: 'that provides the following outputs',
+  label: "that provides the following outputs",
   line_breaks: false
 });
 
 export const ResolverIdentifier = createToken({
-  name: 'ResolverIdentifier',
+  name: "ResolverIdentifier",
   pattern: resolverDefinitionPattern,
-  label: 'using a resolver named',
+  label: "using a resolver named",
   line_breaks: false
 });
 
 export const ResolverParams = createToken({
-  name: 'ResolverParams',
+  name: "ResolverParams",
   pattern: resolverWithInputsPattern,
-  label: 'with the following mapped inputs:',
+  label: "with the following mapped inputs:",
   line_breaks: false
 });
 
 export const ResolverParamMapped = createToken({
-  name: 'ResolverParamMapped',
+  name: "ResolverParamMapped",
   pattern: resolverInputMappedPattern,
-  label: 'a mapped param',
+  label: "a mapped param",
   line_breaks: false
 });
 
 export const ResolverParamTransformedWithString = createToken({
-  name: 'ResolverParamTransformedWithString',
+  name: "ResolverParamTransformedWithString",
   pattern: resolverInputTransformedWithStringPattern,
-  label: 'a transformed string param',
+  label: "a transformed string param",
   line_breaks: false
 });
 
 export const ResolverParamTransformedWithObject = createToken({
-  name: 'ResolverParamTransformedWithObject',
+  name: "ResolverParamTransformedWithObject",
   pattern: resolverInputTransformedWithObjectPattern,
-  label: 'a transformed object param',
+  label: "a transformed object param",
   line_breaks: true
 });
 
 export const ResolverParamFixedBasic = createToken({
-  name: 'ResolverParamFixedBasic',
+  name: "ResolverParamFixedBasic",
   pattern: resolverInputFixedBasicPattern,
-  label: 'a fixed value param',
+  label: "a fixed value param",
   line_breaks: false
 });
 
 export const ResolverParamFixedNull = createToken({
-  name: 'ResolverParamFixedNull',
+  name: "ResolverParamFixedNull",
   pattern: resolverInputFixedNullPattern,
-  label: 'a fixed null value',
+  label: "a fixed null value",
   line_breaks: false
 });
 
 export const ResolverParamFixedObject = createToken({
-  name: 'ResolverParamFixedObject',
+  name: "ResolverParamFixedObject",
   pattern: resolverInputFixedObjectPattern,
-  label: 'a fixed object value',
+  label: "a fixed object value",
   line_breaks: true
 });
 
 export const ResolverResults = createToken({
-  name: 'ResolverResults',
+  name: "ResolverResults",
   pattern: resolverWithOutputsPattern,
-  label: 'with the following mapped outputs:',
+  label: "with the following mapped outputs:",
   line_breaks: false
 });
 
 export const ResolverResultMapped = createToken({
-  name: 'ResolverResultMapped',
+  name: "ResolverResultMapped",
   pattern: resolverOutputMappedPattern,
-  label: 'mapped to',
+  label: "mapped to",
   line_breaks: false
 });
 
@@ -350,5 +425,5 @@ export const allTokens = [
   ResolverParamFixedNull,
   ResolverParamFixedObject,
   ResolverResults,
-  ResolverResultMapped,
+  ResolverResultMapped
 ];

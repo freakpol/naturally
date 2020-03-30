@@ -1,23 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2017",
     "module": "commonjs",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "lib": ["es6", "es2015"],
-    "types": ["node"],
     "declaration": true,
-    "outDir": "lib",
-    "rootDir": "src",
+    "outDir": "./lib",
     "strict": true,
+    "types": ["node", "debug"],
+    "pretty": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "noUnusedLocals": true,
+    "sourceMap": true
   },
-  "exclude": [
-    "lib",
-    "node_modules",
-    "src/**/*.spec.ts"
-  ],
-  "include": [
-    "src"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "lib"]
 }
