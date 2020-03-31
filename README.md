@@ -1,8 +1,27 @@
-#Naturally
+# Naturally
 
 Naturally allows to write Flowed specs using natural language instead of JSON.
 
-##Example
+- [Naturally](#naturally)
+  * [Example](#example)
+  * [Grammar](#grammar)
+    + [flowStatement](#flowstatement)
+    + [taskStatement](#taskstatement)
+    + [taskRequires](#taskrequires)
+    + [taskProvides](#taskprovides)
+    + [taskResolver](#taskresolver)
+    + [resolverParams](#resolverparams)
+      - [Mapped values](#mapped-values)
+      - [Basic values](#basic-values)
+      - [Object value](#object-value)
+      - [Null value](#null-value)
+      - [Transformed Values](#transformed-values)
+    + [resolverResults](#resolverresults)
+  * [Usage](#usage)
+  * [Installation](#installation)
+
+
+## Example
 
 ```
 Define a flow testFlow that has the following tasks:
