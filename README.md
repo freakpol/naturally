@@ -32,7 +32,7 @@ Define a flow testFlow that has the following tasks:
       with the following mapped inputs:
         param p1 mapped from someInput
         param p2 mapped from someOtherInput
-        param p3 transformed with string "{{someInput.property}}"
+        param p3 transformed with string {{someInput.property}}
         param p4 transformed with object <<<OBJECT
           {
             "a1": "{{someInput.property}}",
@@ -40,7 +40,7 @@ Define a flow testFlow that has the following tasks:
           }
         OBJECT;
         param p5 with a fixed null value,
-        param p6 with a fixed string value of "test"
+        param p6 with a fixed string value of test
         param p7 with a fixed number value of 123
         param p8 with a fixed number value of 456.789
         param p9 with a fixed boolean value of true
