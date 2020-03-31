@@ -1,3 +1,4 @@
+import {createSyntaxDiagramsCode} from "chevrotain";
 import { NatuallyFlowedLexer } from "../lexer/flowed";
 import { debug as debugFn } from "debug";
 const debug = debugFn("naturally:tokens");
@@ -13,12 +14,12 @@ import {
   ResolverParams,
   ResolverParamMapped,
   ResolverParamTransformedWithString,
-  ResolverParamTransformedWithObject,
   ResolverParamFixedBasic,
   ResolverParamFixedNull,
-  ResolverParamFixedObject,
   ResolverResults,
-  ResolverResultMapped
+  ResolverResultMapped,
+  ResolverParamFixedObject,
+  ResolverParamTransformedWithObject
 } from "../tokens/flowed";
 
 class FlowedNaturalLanguageParser extends CstParser {
@@ -72,11 +73,11 @@ class FlowedNaturalLanguageParser extends CstParser {
     this.taskResolver = _this.RULE("taskResolver", () => {
       _this.CONSUME(ResolverIdentifier);
 
-      _this.OPTION1(() => {
+      _this.OPTION(() => {
         _this.SUBRULE(_this.resolverParams);
       });
 
-      _this.OPTION2(() => {
+      _this.OPTION1(() => {
         _this.SUBRULE(_this.resolverResults);
       });
     });
@@ -103,7 +104,9 @@ class FlowedNaturalLanguageParser extends CstParser {
       _this.AT_LEAST_ONE({
         // SEP: Comma,
         DEF: () => {
-          _this.CONSUME(ResolverResultMapped);
+          _this.OR([
+            { ALT: () => _this.CONSUME(ResolverResultMapped) }
+          ]);
         }
       });
     });
@@ -334,4 +337,11 @@ export class NaturallyParser {
 
     return jsonFlow;
   }
+
+  public getHtmlGrammar() {
+    // create the HTML Text
+    const serializedGrammar = this.parser.getSerializedGastProductions();
+    return createSyntaxDiagramsCode(serializedGrammar);
+  }
+
 }
