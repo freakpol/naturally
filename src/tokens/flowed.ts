@@ -2,45 +2,55 @@ import { createToken } from "chevrotain";
 import { debug as debugFn } from "debug";
 const debug = debugFn("naturally:tokens");
 
-const flowDefinitionRegEx = /Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/;
-const taskDefinitionRegEx = /A task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-const taskRequiresRegEx = /that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
-const taskProvidesRegEx = /that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/;
-const resolverDefinitionRegEx = /using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/;
-const resolverWithInputsRegEx = /with the following mapped inputs:/;
-const resolverInputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
-const resolverInputTransformedWithStringRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with string (.+)/;
-const resolverInputTransformedWithObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with <<<OBJECT(.+)OBJECT;/s;
-const resolverInputFixedBasicRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed (numeric|boolean|string|array) value of (.+)/;
-const resolverInputFixedNullRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed null value/;
-const resolverInputFixedObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed object value of <<<OBJECT(.+)OBJECT;/s;
-const resolverWithOutputsRegEx = /with the following mapped outputs:/;
-const resolverOutputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/;
+const flowDefinitionRegEx = /Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/i;
+const taskDefinitionRegEx = /a task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i;
+const taskRequiresRegEx = /that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/i;
+const taskProvidesRegEx = /that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/i;
+const resolverDefinitionRegEx = /using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/i;
+const resolverWithInputsRegEx = /with the following mapped inputs:/i;
+const resolverInputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i;
+const resolverInputTransformedWithRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with ((?<object>\{(.+)\});|(?<array>\[(.*)\]);|(?<string>"(.+)");)/si;
+const resolverInputFixedBasicRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with value ((?<string>"(.*)")|(?<number>[\+\-]?\d*\.?\d+(?:[Ee][\+\-]?\d+)?))/i;
+const resolverInputFixedNullOrBoolRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a (null|true|false) value/i;
+const resolverInputFixedObjectRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with value ((?<object>\{(.+)\});|(?<array>\[(.*)\]);)/si;
+const resolverWithOutputsRegEx = /with the following mapped outputs:/i;
+const resolverOutputMappedRegEx = /param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i;
 
 const regexTest = (
   regex: RegExp,
   startString: string,
   text: string,
   startOffset: number,
-  lineEnding: string = "\n"
+  lineEndings: string | string[]
 ) => {
+  let stringLength: number;
+  if (typeof lineEndings === 'string') {
+    stringLength = text.substr(startOffset).indexOf(lineEndings) + lineEndings.length;
+
+  } else {
+    let minLength = Infinity;
+
+    for (let lineEnding of lineEndings) {
+      if (text.substr(startOffset).indexOf(lineEnding) !== -1) {
+        const l = text.substr(startOffset).indexOf(lineEnding) + lineEnding.length;
+        if (l < minLength) {
+          minLength = l;
+        }
+      }
+    }
+
+    stringLength = minLength;
+  }
+
   const subtext = text.substr(
     startOffset,
-    text.substr(startOffset).indexOf(lineEnding) + lineEnding.length
+    stringLength
   );
 
-
-
   if (subtext.startsWith(startString)) {
-
-
-
-
     regex.lastIndex = startOffset;
 
     const result = regex.exec(subtext);
-
-
     if (result) {
       const debugObject = {
         text: subtext,
@@ -181,46 +191,31 @@ const resolverInputMappedPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-const resolverInputTransformedWithStringPattern = (
+const resolverInputTransformedWithPattern = (
   text: string,
   startOffset: number
 ) => {
   const execResult = regexTest(
-    resolverInputTransformedWithStringRegEx,
+    resolverInputTransformedWithRegEx,
     "param ",
     text,
     startOffset,
-      "\n"
+      ["];", "};", '";']
   );
   if (execResult !== null) {
+     let from: any
+    if (execResult.groups!['object']) {
+      from = JSON.parse(execResult.groups!['object']);
+    } else if (execResult.groups!['array']) {
+      from = JSON.parse(execResult.groups!['array'])
+    } else {
+      from = execResult.groups!['string'].slice(1, -1);
+    }
+
     // @ts-ignore
     execResult.payload = {
       transformed: {
-        from: execResult[2],
-        to: execResult[1]
-      }
-    };
-  }
-
-  return execResult;
-};
-
-const resolverInputTransformedWithObjectPattern = (
-  text: string,
-  startOffset: number
-) => {
-  const execResult = regexTest(
-    resolverInputTransformedWithObjectRegEx,
-    "param ",
-    text,
-    startOffset,
-    "OBJECT;"
-  );
-  if (execResult !== null) {
-    // @ts-ignore
-    execResult.payload = {
-      transformed: {
-        from: execResult[2],
+        from: from,
         to: execResult[1]
       }
     };
@@ -238,12 +233,19 @@ const resolverInputFixedBasicPattern = (text: string, startOffset: number) => {
       "\n"
   );
   if (execResult !== null) {
+    let from: any;
+    if (execResult.groups!['number']) {
+      from = parseFloat(execResult.groups!['number']);
+    } else {
+      from = execResult.groups!['string'].slice(1, -1)
+    }
+
+
     // @ts-ignore
     execResult.payload = {
       fixed: {
-        from: execResult[3],
-        to: execResult[1],
-        type: execResult[2]
+        from: from,
+        to: execResult[1]
       }
     };
   }
@@ -251,9 +253,9 @@ const resolverInputFixedBasicPattern = (text: string, startOffset: number) => {
   return execResult;
 };
 
-const resolverInputFixedNullPattern = (text: string, startOffset: number) => {
+const resolverInputFixedNullOrBoolPattern = (text: string, startOffset: number) => {
   const execResult = regexTest(
-    resolverInputFixedNullRegEx,
+    resolverInputFixedNullOrBoolRegEx,
     "param ",
     text,
     startOffset,
@@ -263,7 +265,8 @@ const resolverInputFixedNullPattern = (text: string, startOffset: number) => {
     // @ts-ignore
     execResult.payload = {
       fixed: {
-        to: execResult[1]
+        to: execResult[1],
+        from: execResult[2].toLocaleLowerCase()
       }
     };
   }
@@ -277,14 +280,23 @@ const resolverInputFixedObjectPattern = (text: string, startOffset: number) => {
     "param ",
     text,
     startOffset,
-    "OBJECT;"
+    ["};", "];"]
   );
   if (execResult !== null) {
+    let from: any;
+
+    if (execResult.groups!['object']) {
+      from =  JSON.parse(execResult.groups!['object'])
+    } else {
+      from =  JSON.parse(execResult.groups!['array'])
+    }
+
+
     // @ts-ignore
     execResult.payload = {
       fixed: {
         to: execResult[1],
-        from: execResult[2]
+        from: from
       }
     };
   }
@@ -374,38 +386,31 @@ export const ResolverParamMapped = createToken({
   line_breaks: false
 });
 
-export const ResolverParamTransformedWithString = createToken({
-  name: "ResolverParamTransformedWithString",
-  pattern: resolverInputTransformedWithStringPattern,
-  label: "param <resolverParamName> transformed with string <transformString>",
+export const ResolverParamTransformedWith = createToken({
+  name: "ResolverParamTransformedWith",
+  pattern: resolverInputTransformedWithPattern,
+  label: "param <resolverParamName> transformed with <transformObject|transformString|transformArray>",
   line_breaks: false
-});
-
-export const ResolverParamTransformedWithObject = createToken({
-  name: "ResolverParamTransformedWithObject",
-  pattern: resolverInputTransformedWithObjectPattern,
-  label: "param <resolverParamName> transformed with <<<OBJECT<transformObject>OBJECT;",
-  line_breaks: true
 });
 
 export const ResolverParamFixedBasic = createToken({
   name: "ResolverParamFixedBasic",
   pattern: resolverInputFixedBasicPattern,
-  label: "param <resolverParamName> with a fixed (numeric|boolean|string|array) value of <resolverParamValue>",
+  label: "param <resolverParamName> with value <string|number>",
   line_breaks: false
 });
 
-export const ResolverParamFixedNull = createToken({
-  name: "ResolverParamFixedNull",
-  pattern: resolverInputFixedNullPattern,
-  label: "param <resolverParamName> with a fixed null value",
+export const ResolverParamFixedNullOrBool = createToken({
+  name: "ResolverParamFixedNullOrBool",
+  pattern: resolverInputFixedNullOrBoolPattern,
+  label: "param <resolverParamName> with a (null|true|false) value",
   line_breaks: false
 });
 
 export const ResolverParamFixedObject = createToken({
   name: "ResolverParamFixedObject",
   pattern: resolverInputFixedObjectPattern,
-  label: "param <resolverParamName> with a fixed object value of <<<OBJECT<objectValue>OBJECT;",
+  label: "param <resolverParamName> with value <object|array>",
   line_breaks: true
 });
 
@@ -431,11 +436,10 @@ export const allTokens = [
   ResolverIdentifier,
   ResolverParams,
   ResolverParamMapped,
-  ResolverParamTransformedWithString,
+  ResolverParamTransformedWith,
   ResolverParamFixedBasic,
-  ResolverParamFixedNull,
+  ResolverParamFixedNullOrBool,
   ResolverResults,
   ResolverResultMapped,
-  ResolverParamFixedObject,
-  ResolverParamTransformedWithObject
+  ResolverParamFixedObject
 ];

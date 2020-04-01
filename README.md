@@ -24,7 +24,7 @@ Naturally allows to write Flowed specs using natural language instead of JSON.
 ## Example
 
 ```
-Define a flow testFlow that has the following tasks:
+Define a flow named testFlow that has the following tasks:
   A task named firstTask
     that requires the following inputs: someInput, someOtherInput
     that provides the following outputs: someOutput
@@ -32,28 +32,22 @@ Define a flow testFlow that has the following tasks:
       with the following mapped inputs:
         param p1 mapped from someInput
         param p2 mapped from someOtherInput
-        param p3 transformed with string {{someInput.property}}
-        param p4 transformed with object <<<OBJECT
-          {
+        param p3 transformed with "{{someInput.property}}";
+        param p4 transformed with {
             "a1": "{{someInput.property}}",
             "a2": "{{someOtherInput.propertyB}}"
-          }
-        OBJECT;
-        param p5 with a fixed null value,
-        param p6 with a fixed string value of test
-        param p7 with a fixed number value of 123
-        param p8 with a fixed number value of 456.789
-        param p9 with a fixed boolean value of true
-        param p10 with a fixed boolean value of 1
-        param p11 with a fixed boolean value of false
-        param p12 with a fixed boolean value of 0
-        param p13 with a fixed array value of ["a", "b", "c"]
-        param p14 with a fixed object value of <<<OBJECT
-          {
+          };
+        param p5 with value 123
+        param p6 with value 456.789
+        param p7 with value "sample string"
+        param p8 with a null value,
+        param p9 with a true value
+        param p10 with a false value
+        param p11 with value ["a", "b", "c"];
+        param p12 with value {
             "a1": "123",
             "a2": true
-          }
-        OBJECT;
+          };
       with the following mapped outputs:
         param taskResult mapped to someOutput
 ```
@@ -79,16 +73,14 @@ Once parsed will return the following javascript object:
               a2: '{{someOtherInput.propertyB}}'
             }
           },
-          p5: { value: [ 'a', 'b', 'c' ] },
-          p6: { value: '"test"' },
-          p7: { value: 123 },
-          p8: { value: 456.789 },
+          p5: { value: 123 },
+          p6: { value: 456.789 },
+          p7: { value: 'sample string' },
+          p8: { value: null },
           p9: { value: true },
-          p10: { value: true },
-          p11: { value: false },
-          p12: { value: false },
-          p13: { value: null },
-          p14: { value: { a1: '123', a2: true } }
+          p10: { value: false },
+          p11: { value: [ 'a', 'b', 'c' ] },
+          p12: { value: { a1: '123', a2: true } }
         },
         results: { taskResult: 'someOutput' }
       }
@@ -101,7 +93,7 @@ Once parsed will return the following javascript object:
 
 `naturally` follows the following grammar:
 
-![Parallel Tasks](./docs/images/grammar.png)
+![Grammar](./docs/images/grammar.png)
 
 Let's see each section in detail.
 
@@ -110,7 +102,7 @@ Let's see each section in detail.
 The flow statement is a string that matches the following RegEx:
 
 ```jsregexp
-/Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/
+/Define a flow named ([._a-zA-Z][.\-_a-zA-Z0-9]+) that has the following tasks:/i
 ```
 
 ### taskStatement
@@ -118,7 +110,7 @@ The flow statement is a string that matches the following RegEx:
 The flow statement is a string that matches the following RegEx:
 
 ```jsregexp
-/A task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/
+/A task named ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i
 ```
 
 ### taskRequires
@@ -126,7 +118,7 @@ The flow statement is a string that matches the following RegEx:
 The task requires statement is a string that matches the following RegEx:
 
 ```jsregexp
-/that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/
+/that requires the following inputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/i
 ```
 
 ### taskProvides
@@ -134,7 +126,7 @@ The task requires statement is a string that matches the following RegEx:
 The task provides statement is a string that matches the following RegEx:
 
 ```jsregexp
-/that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/
+/that provides the following outputs: (([._a-zA-Z][.\-_a-zA-Z]+,\s?)*[._a-zA-Z][.\-_a-zA-Z]+)/i
 ```
 
 ### taskResolver
@@ -142,7 +134,7 @@ The task provides statement is a string that matches the following RegEx:
 The task resolver statement is a string that matches the following RegEx:
 
 ```jsregexp
-/using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/
+/using a resolver named ([._a-zA-Z][.:\-_a-zA-Z0-9]+)/i
 ```
 
 ### resolverParams
@@ -152,7 +144,7 @@ Resolver params are basically two types of statements:
 One statement that matches 
 
 ```jsregexp
-/with the following mapped inputs:/
+/with the following mapped inputs:/i
 ```
 
 followed by one or more of the statements:
@@ -162,46 +154,47 @@ followed by one or more of the statements:
 A string that matches the following RegEx:
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped from ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i
 ```
 
 
-#### Basic values
+#### String or number values
 
-Basic values includes: numeric, boolean, string and array and thus are strings that matches the following RegEx:
+String or number values statements are strings that matches the following RegEx:
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed (numeric|boolean|string|array) value of (.+)/
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with value ((?<string>"(.*)")|(?<number>[\+\-]?\d*\.?\d+(?:[Ee][\+\-]?\d+)?))/i
 ```
 
-#### Object value
+#### Object or array values
 
-Object value is a special construct that allows to define a JSON object as param value. It's a string that matches the following RegEx:
+Object or array values are a special construct that allows to define a JSON object (object or array) as param value. It's a string that matches the following RegEx:
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed object value of <<<OBJECT(.+)OBJECT;/s
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with value ((?<object>\{(.+)\});|(?<array>\[(.*)\]);)/si
 ```
 
 Note the `s` modifier, that allows to write the object in multiple lines.
+Also note that both object and array values should end with `};` or `];` respectively.
 
-#### Null value
+#### Null or boolean values
 
 Null value is a special value and thus it have its own statement: a string that matches the following RegEx:
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a fixed null value/
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) with a (null|true|false) value/i
 ```
 
 #### Transformed Values
 
-There are two types of transformations, based on a transformation string and based on an transformation object. Here are the corresponding RegExs for each one:
+Transformations values are strings that matches then follwoing RegEx:
 
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with string (.+)/
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with <<<OBJECT(.+)OBJECT;/s
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) transformed with ((?<object>\{(.+)\});|(?<array>\[(.*)\]);|(?<string>"(.+)");)/si
  ```
 Note the `s` modifier in the second RegEx, that allows to write the object in multiple lines.
+Note that the expression support three types of transformations: object, array and string, each one should end with `;` or `];` or `";` respectively.
 
 ### resolverResults
 
@@ -210,23 +203,25 @@ Resolver results are two types of statements.
 One statement that matches the following RegEx:
 
 ```jsregexp
-/with the following mapped outputs:/
+/with the following mapped outputs:/i
 ```
 
 followed by one or more statements matching the folloging RegEx:
 
 ```jsregexp
-/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/
+/param ([._a-zA-Z][.\-_a-zA-Z0-9]+) mapped to ([._a-zA-Z][.\-_a-zA-Z0-9]+)/i
 ```
 
-## Usage
+*NOTE:* All regex have the `i` modifier in order to be case insensitive.
 
+
+## Usage
 
 ```js
 const { NaturallyParser } = require('naturally');
 
 const naturallyFlowedExpression = `
-Define a flow testFlow that has the following tasks:
+Define a flow named testFlow that has the following tasks:
   A task named firstTask
     that requires the following inputs: someInput, someOtherInput
     that provides the following outputs: someOutput
@@ -234,28 +229,22 @@ Define a flow testFlow that has the following tasks:
       with the following mapped inputs:
         param p1 mapped from someInput
         param p2 mapped from someOtherInput
-        param p3 transformed with string "{{someInput.property}}"
-        param p4 transformed with object <<<OBJECT
-          {
+        param p3 transformed with "{{someInput.property}}";
+        param p4 transformed with {
             "a1": "{{someInput.property}}",
             "a2": "{{someOtherInput.propertyB}}"
-          }
-        OBJECT;
-        param p5 with a fixed null value,
-        param p6 with a fixed string value of "test"
-        param p7 with a fixed number value of 123
-        param p8 with a fixed number value of 456.789
-        param p9 with a fixed boolean value of true
-        param p10 with a fixed boolean value of 1
-        param p11 with a fixed boolean value of false
-        param p12 with a fixed boolean value of 0
-        param p13 with a fixed array value of ["a", "b", "c"]
-        param p14 with a fixed object value of <<<OBJECT
-          {
+          };
+        param p5 with value 123
+        param p6 with value 456.789
+        param p7 with value "sample string"
+        param p8 with a null value,
+        param p9 with a true value
+        param p10 with a false value
+        param p11 with value ["a", "b", "c"];
+        param p12 with value {
             "a1": "123",
             "a2": true
-          }
-        OBJECT;
+          };
       with the following mapped outputs:
         param taskResult mapped to someOutput
 `;
