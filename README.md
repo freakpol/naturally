@@ -2,7 +2,8 @@
 
 Naturally allows to write Flowed specs using natural language instead of JSON.
 
-- [Naturally](#naturally)
+
+## TOC
   * [Example](#example)
   * [Grammar](#grammar)
     + [flowStatement](#flowstatement)
@@ -12,14 +13,13 @@ Naturally allows to write Flowed specs using natural language instead of JSON.
     + [taskResolver](#taskresolver)
     + [resolverParams](#resolverparams)
       - [Mapped values](#mapped-values)
-      - [Basic values](#basic-values)
-      - [Object value](#object-value)
-      - [Null value](#null-value)
+      - [String or number values](#string-or-number-values)
+      - [Object or array values](#object-or-array-values)
+      - [Null or boolean values](#null-or-boolean-values)
       - [Transformed Values](#transformed-values)
     + [resolverResults](#resolverresults)
   * [Usage](#usage)
   * [Installation](#installation)
-
 
 ## Example
 
