@@ -40,7 +40,7 @@ Define a flow named testFlow that has the following tasks:
         param p5 with value 123
         param p6 with value 456.789
         param p7 with value "sample string"
-        param p8 with a null value,
+        param p8 with a null value
         param p9 with a true value
         param p10 with a false value
         param p11 with value ["a", "b", "c"];
@@ -237,7 +237,7 @@ Define a flow named testFlow that has the following tasks:
         param p5 with value 123
         param p6 with value 456.789
         param p7 with value "sample string"
-        param p8 with a null value,
+        param p8 with a null value
         param p9 with a true value
         param p10 with a false value
         param p11 with value ["a", "b", "c"];

@@ -4,11 +4,14 @@
   "description": "Natural language interface for Flowed",
   "main": "lib/index.js",
   "scripts": {
+    "start": "npm test",
+    "test": "nyc mocha --require ts-node/register --require source-map-support/register tests/*.ts",
+    "posttest": "npm run lint",
+    "coverage": "nyc report",
     "lint": "tslint -p tsconfig.json -t verbose",
+    "format": "tslint -p tsconfig.json -t verbose --fix && prettier --write \"src/**/*.ts\" \"src/**/*.js\" && prettier --write \"tests/**/*.ts\" \"tests/**/*.js\"",
     "build": "tsc",
-    "build:watch": "npm run build -- --watch",
-    "start": "node -r ts-node/register lib/index.js",
-    "format": "tslint -p tsconfig.json -t verbose --fix && prettier --write \"src/**/*.ts\" \"src/**/*.js\""
+    "build:watch": "npm run build -- --watch"
   },
   "keywords": [
     "flowed",
@@ -26,12 +29,17 @@
     "lib"
   ],
   "devDependencies": {
-    "@types/node": "^13.9.5",
-    "ts-node": "^8.8.1",
-    "typescript": "^3.8.3",
-    "tslint": "^6.0.0",
+    "@types/chai": "^4.2.6",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.11.0",
+    "chai": "^4.2.0",
+    "mocha": "^7.0.1",
+    "nyc": "^15.0.1",
     "prettier": "^1.19.1",
-    "tslint-config-prettier": "^1.18.0"
+    "ts-node": "^8.8.1",
+    "tslint": "^6.1.1",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.8.3"
   },
   "repository": {
     "type": "git",

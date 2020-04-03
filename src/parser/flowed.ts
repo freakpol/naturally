@@ -1,9 +1,9 @@
-import {createSyntaxDiagramsCode} from "chevrotain";
-import { NatuallyFlowedLexer } from "../lexer/flowed";
-import { debug as debugFn } from "debug";
-const debug = debugFn("naturally:tokens");
+import { createSyntaxDiagramsCode } from 'chevrotain';
+import { NaturallyFlowedLexer } from '../lexer/flowed';
+import { debug as debugFn } from 'debug';
+const debug = debugFn('naturally:tokens');
 
-import { CstParser } from "chevrotain";
+import { CstParser } from 'chevrotain';
 import {
   allTokens,
   FlowDefinition,
@@ -18,8 +18,8 @@ import {
   ResolverParamFixedNullOrBool,
   ResolverResults,
   ResolverResultMapped,
-  ResolverParamFixedObject
-} from "../tokens/flowed";
+  ResolverParamFixedObject,
+} from '../tokens/flowed';
 
 class FlowedNaturalLanguageParser extends CstParser {
   public flowStatement: any;
@@ -32,22 +32,22 @@ class FlowedNaturalLanguageParser extends CstParser {
 
   constructor() {
     super(allTokens, {
-      recoveryEnabled: true
+      recoveryEnabled: false,
     });
 
     const _this = this;
 
-    this.flowStatement = _this.RULE("flowStatement", () => {
+    this.flowStatement = _this.RULE('flowStatement', () => {
       _this.CONSUME(FlowDefinition);
 
       _this.AT_LEAST_ONE({
         DEF: () => {
           _this.SUBRULE(_this.taskStatement);
-        }
+        },
       });
     });
 
-    this.taskStatement = _this.RULE("taskStatement", () => {
+    this.taskStatement = _this.RULE('taskStatement', () => {
       _this.CONSUME(TaskIdentifier);
 
       _this.OPTION(() => {
@@ -61,15 +61,15 @@ class FlowedNaturalLanguageParser extends CstParser {
       _this.SUBRULE(_this.taskResolver);
     });
 
-    this.taskRequires = _this.RULE("taskRequires", () => {
+    this.taskRequires = _this.RULE('taskRequires', () => {
       _this.CONSUME(TaskRequires);
     });
 
-    this.taskProvides = _this.RULE("taskProvides", () => {
+    this.taskProvides = _this.RULE('taskProvides', () => {
       _this.CONSUME(TaskProvides);
     });
 
-    this.taskResolver = _this.RULE("taskResolver", () => {
+    this.taskResolver = _this.RULE('taskResolver', () => {
       _this.CONSUME(ResolverIdentifier);
 
       _this.OPTION(() => {
@@ -81,7 +81,7 @@ class FlowedNaturalLanguageParser extends CstParser {
       });
     });
 
-    this.resolverParams = _this.RULE("resolverParams", () => {
+    this.resolverParams = _this.RULE('resolverParams', () => {
       _this.CONSUME(ResolverParams);
 
       _this.AT_LEAST_ONE({
@@ -91,21 +91,19 @@ class FlowedNaturalLanguageParser extends CstParser {
             { ALT: () => _this.CONSUME(ResolverParamTransformedWith) },
             { ALT: () => _this.CONSUME(ResolverParamFixedBasic) },
             { ALT: () => _this.CONSUME(ResolverParamFixedNullOrBool) },
-            { ALT: () => _this.CONSUME(ResolverParamFixedObject) }
+            { ALT: () => _this.CONSUME(ResolverParamFixedObject) },
           ]);
-        }
+        },
       });
     });
 
-    this.resolverResults = _this.RULE("resolverResults", () => {
+    this.resolverResults = _this.RULE('resolverResults', () => {
       _this.CONSUME(ResolverResults);
       _this.AT_LEAST_ONE({
         // SEP: Comma,
         DEF: () => {
-          _this.OR([
-            { ALT: () => _this.CONSUME(ResolverResultMapped) }
-          ]);
-        }
+          _this.OR([{ ALT: () => _this.CONSUME(ResolverResultMapped) }]);
+        },
       });
     });
 
@@ -126,40 +124,31 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     let tasks = {};
 
     for (const task of ctx.children.taskStatement) {
-      tasks = Object.assign({}, tasks, this.visit(task));
+      tasks = Object.assign(tasks, this.visit(task));
     }
 
     return {
       code: ctx.children.FlowDefinition.pop().payload.identifier,
-      tasks
+      tasks,
     };
   }
 
   taskStatement(ctx: any) {
     let taskDefinition = {};
 
-    if (ctx.taskRequires && ctx.taskRequires.length) {
-      taskDefinition = Object.assign(
-        {},
-        taskDefinition,
-        this.visit(ctx.taskRequires.pop())
-      );
+    /* istanbul ignore else */
+    if (ctx.taskRequires!.length) {
+      taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskRequires.pop()));
     }
 
-    if (ctx.taskProvides && ctx.taskProvides.length) {
-      taskDefinition = Object.assign(
-        {},
-        taskDefinition,
-        this.visit(ctx.taskProvides.pop())
-      );
+    /* istanbul ignore else */
+    if (ctx.taskProvides!.length) {
+      taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskProvides.pop()));
     }
 
-    if (ctx.taskResolver && ctx.taskResolver.length) {
-      taskDefinition = Object.assign(
-        {},
-        taskDefinition,
-        this.visit(ctx.taskResolver.pop())
-      );
+    /* istanbul ignore else */
+    if (ctx.taskResolver!.length) {
+      taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskResolver.pop()));
     }
 
     return { [ctx.TaskIdentifier.pop().payload.identifier]: taskDefinition };
@@ -167,108 +156,100 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
 
   taskRequires(ctx: any) {
     return {
-      requires: ctx.TaskRequires.pop().payload.requireList
+      requires: ctx.TaskRequires.pop().payload.requireList,
     };
   }
 
   taskProvides(ctx: any) {
     return {
-      provides: ctx.TaskProvides.pop().payload.provideList
+      provides: ctx.TaskProvides.pop().payload.provideList,
     };
   }
 
   taskResolver(ctx: any) {
     let resolverParts = {};
 
-    if (ctx.resolverParams && ctx.resolverParams.length) {
-      resolverParts = Object.assign(
-        {},
-        resolverParts,
-        this.visit(ctx.resolverParams.pop())
-      );
+    /* istanbul ignore else */
+    if (ctx.resolverParams!.length) {
+      resolverParts = Object.assign(resolverParts, this.visit(ctx.resolverParams.pop()));
     }
 
-    if (ctx.resolverResults && ctx.resolverResults.length) {
-      resolverParts = Object.assign(
-        {},
-        resolverParts,
-        this.visit(ctx.resolverResults.pop())
-      );
+    /* istanbul ignore else */
+    if (ctx.resolverResults!.length) {
+      resolverParts = Object.assign(resolverParts, this.visit(ctx.resolverResults.pop()));
     }
 
     return {
-      resolver: Object.assign(
-        {},
-        { name: ctx.ResolverIdentifier.pop().payload.identifier },
-        resolverParts
-      )
+      resolver: Object.assign({ name: ctx.ResolverIdentifier.pop().payload.identifier }, resolverParts),
     };
   }
 
   resolverParams(ctx: any) {
     let params = {};
 
-    if (ctx.ResolverParamMapped && ctx.ResolverParamMapped.length) {
+    /* istanbul ignore else */
+    if (ctx.ResolverParamMapped!.length) {
       for (const mappedParam of ctx.ResolverParamMapped) {
-        params = Object.assign({}, params, {
-          [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from
+        params = Object.assign(params, {
+          [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from,
         });
       }
     }
 
-    if (
-      ctx.ResolverParamTransformedWith &&
-      ctx.ResolverParamTransformedWith.length
-    ) {
+    /* istanbul ignore else */
+    if (ctx.ResolverParamTransformedWith!.length) {
       for (const transformedParam of ctx.ResolverParamTransformedWith) {
-        params = Object.assign({}, params, {
+        params = Object.assign(params, {
           [transformedParam.payload.transformed.to]: {
-            transform: transformedParam.payload.transformed.from
-          }
+            transform: transformedParam.payload.transformed.from,
+          },
         });
       }
     }
 
-    if (ctx.ResolverParamFixedBasic && ctx.ResolverParamFixedBasic.length) {
+    /* istanbul ignore else */
+    if (ctx.ResolverParamFixedBasic!.length) {
       for (const fixedParam of ctx.ResolverParamFixedBasic) {
-        params = Object.assign({}, params, {
+        params = Object.assign(params, {
           [fixedParam.payload.fixed.to]: {
-            value: fixedParam.payload.fixed.from
-          }
+            value: fixedParam.payload.fixed.from,
+          },
         });
       }
     }
 
-    if (ctx.ResolverParamFixedNullOrBool && ctx.ResolverParamFixedNullOrBool.length) {
+    /* istanbul ignore else */
+    if (ctx.ResolverParamFixedNullOrBool!.length) {
       for (const fixedParam of ctx.ResolverParamFixedNullOrBool) {
         if (fixedParam.payload.fixed.from === 'null') {
-          params = Object.assign({}, params, {
+          params = Object.assign(params, {
             [fixedParam.payload.fixed.to]: {
-              value: null
-            }
+              value: null,
+            },
           });
         } else if (fixedParam.payload.fixed.from === 'true') {
-          params = Object.assign({}, params, {
+          params = Object.assign(params, {
             [fixedParam.payload.fixed.to]: {
-              value: true
-            }
+              value: true,
+            },
           });
         } else {
-          params = Object.assign({}, params, {
+          params = Object.assign(params, {
             [fixedParam.payload.fixed.to]: {
-              value: false
-            }
+              value: false,
+            },
           });
         }
       }
     }
 
-    if (ctx.ResolverParamFixedObject && ctx.ResolverParamFixedObject.length) {
+    /* istanbul ignore else */
+    if (ctx.ResolverParamFixedObject!.length) {
       for (const fixedParam of ctx.ResolverParamFixedObject) {
-        params = Object.assign({}, params, {
+        params = Object.assign(params, {
           [fixedParam.payload.fixed.to]: {
-            value: fixedParam.payload.fixed.from
-          }
+            value: fixedParam.payload.fixed.from,
+          },
         });
       }
     }
@@ -278,10 +259,11 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
   resolverResults(ctx: any) {
     let params = {};
 
-    if (ctx.ResolverResultMapped && ctx.ResolverResultMapped.length) {
+    /* istanbul ignore else */
+    if (ctx.ResolverResultMapped!.length) {
       for (const mappedParam of ctx.ResolverResultMapped) {
-        params = Object.assign({}, params, {
-          [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from
+        params = Object.assign(params, {
+          [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from,
         });
       }
     }
@@ -300,17 +282,19 @@ export class NaturallyParser {
   }
 
   public parse(text: string) {
-    const lexingResult = NatuallyFlowedLexer.tokenize(text);
+    const lexingResult = NaturallyFlowedLexer.tokenize(text);
     parser.input = lexingResult.tokens;
     const parsedInput = parser.flowStatement();
-    const jsonFlow = this.visitor.flowStatement(parsedInput);
 
     if (parser.errors.length > 0) {
-      debug("Parser errors: %O", parser.errors);
-      throw new Error("Errors were detected");
+      debug('Parser errors: %O', parser.errors);
+      throw new Error('Errors were detected');
+    } else {
+      parser.input = [];
+      return this.visitor.flowStatement(parsedInput);
     }
 
-    return jsonFlow;
+
   }
 
   public getHtmlGrammar() {
@@ -318,5 +302,4 @@ export class NaturallyParser {
     const serializedGrammar = this.parser.getSerializedGastProductions();
     return createSyntaxDiagramsCode(serializedGrammar);
   }
-
 }
