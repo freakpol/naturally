@@ -137,17 +137,17 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     let taskDefinition = {};
 
     /* istanbul ignore else */
-    if (ctx.taskRequires!.length) {
+    if (ctx.taskRequires && ctx.taskRequires.length) {
       taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskRequires.pop()));
     }
 
     /* istanbul ignore else */
-    if (ctx.taskProvides!.length) {
+    if (ctx.taskProvides && ctx.taskProvides.length) {
       taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskProvides.pop()));
     }
 
     /* istanbul ignore else */
-    if (ctx.taskResolver!.length) {
+    if (ctx.taskResolver && ctx.taskResolver.length) {
       taskDefinition = Object.assign(taskDefinition, this.visit(ctx.taskResolver.pop()));
     }
 
@@ -170,12 +170,12 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     let resolverParts = {};
 
     /* istanbul ignore else */
-    if (ctx.resolverParams!.length) {
+    if (ctx.resolverParams && ctx.resolverParams.length) {
       resolverParts = Object.assign(resolverParts, this.visit(ctx.resolverParams.pop()));
     }
 
     /* istanbul ignore else */
-    if (ctx.resolverResults!.length) {
+    if (ctx.resolverResults && ctx.resolverResults.length) {
       resolverParts = Object.assign(resolverParts, this.visit(ctx.resolverResults.pop()));
     }
 
@@ -188,7 +188,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     let params = {};
 
     /* istanbul ignore else */
-    if (ctx.ResolverParamMapped!.length) {
+    if (ctx.ResolverParamMapped && ctx.ResolverParamMapped.length) {
       for (const mappedParam of ctx.ResolverParamMapped) {
         params = Object.assign(params, {
           [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from,
@@ -197,7 +197,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     }
 
     /* istanbul ignore else */
-    if (ctx.ResolverParamTransformedWith!.length) {
+    if (ctx.ResolverParamTransformedWith && ctx.ResolverParamTransformedWith.length) {
       for (const transformedParam of ctx.ResolverParamTransformedWith) {
         params = Object.assign(params, {
           [transformedParam.payload.transformed.to]: {
@@ -208,7 +208,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     }
 
     /* istanbul ignore else */
-    if (ctx.ResolverParamFixedBasic!.length) {
+    if (ctx.ResolverParamFixedBasic && ctx.ResolverParamFixedBasic.length) {
       for (const fixedParam of ctx.ResolverParamFixedBasic) {
         params = Object.assign(params, {
           [fixedParam.payload.fixed.to]: {
@@ -219,7 +219,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     }
 
     /* istanbul ignore else */
-    if (ctx.ResolverParamFixedNullOrBool!.length) {
+    if (ctx.ResolverParamFixedNullOrBool && ctx.ResolverParamFixedNullOrBool.length) {
       for (const fixedParam of ctx.ResolverParamFixedNullOrBool) {
         if (fixedParam.payload.fixed.from === 'null') {
           params = Object.assign(params, {
@@ -244,7 +244,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     }
 
     /* istanbul ignore else */
-    if (ctx.ResolverParamFixedObject!.length) {
+    if (ctx.ResolverParamFixedObject && ctx.ResolverParamFixedObject.length) {
       for (const fixedParam of ctx.ResolverParamFixedObject) {
         params = Object.assign(params, {
           [fixedParam.payload.fixed.to]: {
@@ -260,7 +260,7 @@ class FlowedNatualLanguageVisitor extends FlowedNatualLanguageVisitorBase {
     let params = {};
 
     /* istanbul ignore else */
-    if (ctx.ResolverResultMapped!.length) {
+    if (ctx.ResolverResultMapped && ctx.ResolverResultMapped.length) {
       for (const mappedParam of ctx.ResolverResultMapped) {
         params = Object.assign(params, {
           [mappedParam.payload.mapped.to]: mappedParam.payload.mapped.from,
